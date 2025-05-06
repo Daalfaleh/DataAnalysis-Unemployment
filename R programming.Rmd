@@ -1,0 +1,234 @@
+---
+title: "Programmer"
+author: "Programmer"
+date: "12/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#here i set the project directory
+
+```{r }
+setwd('C:\Users\daada\OneDrive\Desktop\CS3072-Final Project')
+getwd()
+```
+# Explanatory Data Analysis
+
+#here i load read xl library to read excel dataset and used head function to print first 5 rows.
+
+```{r }
+
+library(readxl)
+library(dplyr)
+data = read_excel('Cleaned Data.xlsx')
+head(data)
+
+```
+
+
+#i use glimpse function that help use to understand the sturcture of the dataset and data types of columns 
+
+```{r }
+glimpse(data)
+
+```
+
+
+
+#i used summary function to analyze data in statistics way and we can see five number of summary in the form of min, median, 1st quartile, 2nd and 3rd quartile and we can also see the missing values in each columns like ' How many days were you hospitalized for your mental illness' has 37 missing values
+
+```{r }
+summary(data)
+```
+
+
+
+#here i create barplot with the help of different columns for data visualization .
+
+```{r }
+#in this barplot we can see the unemployment count with the help of region
+barplot(table(data$`I am unemployed`,data$Region),col=c(18,19),legend.text = TRUE,args.legend =list(x='topright'),las=2,main = 'BARPLOT FOR unemployed AND Region')
+
+#in this barplot we can see the unemployment count with the help of education
+barplot(table(data$`I am unemployed`,data$Education),col=c(13,16),legend.text = TRUE,args.legend =list(x='topright'),las=2,main = 'BARPLOT FOR unemployed AND education')
+
+#in this barplot we can see the unemployment count with the help of gender
+barplot(table(data$`I am unemployed`,data$Gender),col=c(8,6),legend.text = TRUE,args.legend =list(x='topright'),las=2,main = 'BARPLOT FOR unemployed AND gender')
+
+#in this barplot we can see the gender count with the help of house hold income
+barplot(table(data$Gender,data$`Household Income`),col=c(3,4,5,6,7,8,9,10),legend.text = TRUE,args.legend =list(x='topright'),las=2,main = 'BARPLOT FOR gender AND HOUSE HOLD INCOME')
+
+```
+
+# Data Cleaning 
+
+#here i count all the missing values in complete dataset
+
+```{r }
+df1 = sum(is.na(data))
+print(paste('the number of missing values are :',df1))
+
+```
+
+
+#here i replace the age frequency with the help of age median
+#here i perfrom data cleaning with the help of mean imputation for How many days were you hospitalized for your mental illness columns,here i use mean imputation becasue in this column 37 missing values.
+#And for remaining column i replace all the missing values with 0
+
+```{r }
+data$Age[data$Age =='> 60'] ='65'
+data$Age[data$Age =='18-29'] ='23'
+data$Age[data$Age =='30-44'] ='37'
+data$Age[data$Age =='45-60'] ='52'
+
+
+data$`How many days were you hospitalized for your mental illness`[is.na(data$`How many days were you hospitalized for your mental illness`)] <- mean(data$`How many days were you hospitalized for your mental illness`, na.rm = TRUE)
+
+data$`Lack of concentration`[is.na(data$`Lack of concentration`)] =0
+data$`Obsessive thinking`[is.na(data$`Obsessive thinking`)] =0
+
+data$`Mood swings`[is.na(data$`Mood swings`)] =0
+data$`Panic attacks`[is.na(data$`Panic attacks`)] =0
+
+data$`Compulsive behavior`[is.na(data$`Compulsive behavior`)] =0
+data$Tiredness[is.na(data$Tiredness)] =0
+dfn = na.omit(data)
+
+
+
+
+```
+
+
+#after data cleaning we can see that we have 0 missing values.
+
+```{r }
+
+print(paste('the missing values are : ',sum(is.na(dfn)) ))
+
+```
+
+#here i convert all the string type column in the foum of number by using conversion fuction.
+
+```{r}
+dfn$Education = as.numeric(as.factor(dfn$Education))
+dfn$Age = as.numeric(as.factor(dfn$Age))
+dfn$Gender = as.numeric(as.factor(dfn$Gender))
+dfn$Education = as.numeric(as.factor(dfn$Education))
+dfn$`Household Income` = as.numeric(as.factor(dfn$`Household Income`))
+dfn$Region = as.numeric(as.factor(dfn$Region))
+dfn$`Device Type` = as.numeric(as.factor(dfn$`Device Type`))
+
+
+```
+
+
+# Feature Selection using Corelation Matrix
+
+#here i create two create matrix, due two the large amount of variables, so we can easily identify which variables are highly corelated with each other, in these corelation matrix dark red color represent highly corelated variables like 'Household Income' and 'employed at least part-time' columns, so when we highly corelated columns so we need to drop one column to remove corelated between the variables .
+
+```{r}
+
+library(psych)
+
+co<- c('Total length of any gaps in my resume in months.')
+dfn1 = dfn[,!(names(dfn) %in% co)]
+
+corPlot(dfn1[,1:15],xlas = 2,main = 'corelation matrix one')
+
+corPlot(dfn1[,16:30],xlas = 2,main = 'corelation matrix two')
+
+
+```
+
+
+
+#here i drop all the highly corelated columns
+#after removing highly corelation columns, i again created corelation matrix.
+
+```{r}
+drop1 <- c('I am currently employed at least part-time','Depression','Anxiety','I live with my parents',
+           'I have my own computer separate from a smart phone','Household Income','Annual income (including any social welfare programs) in USD','Mood swings','Age','Device Type','Annual income from social welfare programs','I have my regular access to the internet')
+
+
+dfn2 = dfn1[,!(names(dfn1) %in% drop1)]
+corPlot(dfn2,xlas = 2,main = 'After Remove corelated variables')
+
+
+```
+
+# Data Spliting
+
+#here i split complete datset into training and testing part, training dataset size is 80% and test dataset size is 20%
+
+```{r}
+library(caret)
+dfn2$`I identify as having a mental illness` = as.factor(dfn2$`I identify as having a mental illness`)
+pd= sample(2,nrow(dfn2),replace = TRUE,prob = c(0.8,0.2))
+trainn = dfn2[pd==1,]
+testt= dfn2[pd==2,]
+print(dim(trainn))
+print(dim(testt))
+
+
+```
+
+# Machine Learning Model
+# Random Forest Classifier
+
+
+#here i create random forest classifer with cross validation and trained this model using training datset
+
+```{r}
+
+train_control <- trainControl(method = "cv", number = 4)
+model_rf = train(`I identify as having a mental illness`~.,data=trainn,method ='rf',
+                   trControl = train_control)
+              
+model_rf
+
+```
+
+
+# Confusion Matrices For Random Forest Classifer
+
+#here i create confusion matrix for model evaluation purpose and we can see this model provide 84% accuracy on test data and 83% accuracy on training dataset.
+
+
+```{r}
+pred_rf = predict(model_rf,testt)
+confusionMatrix(pred_rf,testt$`I identify as having a mental illness`)
+
+```
+
+
+
+# Machine Learning Model
+# K Nearest Neighbour Classifier
+
+#here i create K nearest neighbour classifer with cross validation and trained this model using training datset
+
+
+```{r}
+train_control <- trainControl(method = "cv", number = 4)
+model_knn = train(`I identify as having a mental illness`~.,data=trainn,method ='knn',
+                   trControl = train_control)
+              
+model_knn
+```
+
+# Confusion Matrices For KNN Classifer
+
+#here i create confusion matrix for model evaluation purpose and we can see this model provide 80% accuracy on test data and 80% accuracy on training dataset.
+
+```{r}
+
+pred_knn = predict(model_knn,testt)
+confusionMatrix(pred_knn,testt$`I identify as having a mental illness`)
+
+```
+
